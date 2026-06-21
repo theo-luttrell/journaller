@@ -1,4 +1,4 @@
-# 🗄️ JOURNALLER_
+# JOURNALLER
 
 A strictly zero-knowledge, terminal-native journal built for speed and security. 
 
@@ -10,7 +10,7 @@ It features a strict **Blind Drop-Box Architecture**:
 
 ---
 
-## ⚡ Features
+## Features
 
 * **Terminal Native:** Zero browser overhead. Starts in milliseconds.
 * **Bring Your Own Editor:** Writes are handled by your `$EDITOR` environment variable.
@@ -20,13 +20,13 @@ It features a strict **Blind Drop-Box Architecture**:
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 **Prerequisites:** You must have [Node.js](https://nodejs.org/) installed.
 
 **1. Clone the repository:**
 ```bash
-git clone [https://github.com/yourusername/journaller.git](https://github.com/yourusername/journaller.git)
+git clone https://github.com/theo-luttrell/journaller.git
 cd journaller
 ```
 
@@ -49,7 +49,7 @@ jnlr setup
 
 ---
 
-## ⚙️ Configuration (Crucial Step)
+## Configuration (Crucial Step)
 
 Journaller uses your system's `$EDITOR` variable to open a text editor when you create an entry. You must ensure this is set in your shell configuration file (`~/.zshrc` or `~/.bashrc`).
 
@@ -66,7 +66,8 @@ export EDITOR="nano"
 ```
 
 **For VS Code (GUI Editors):**
-*⚠️ Note: GUI editors require the wait flag, otherwise the terminal will not wait for you to finish typing before encrypting the file.*
+> [!warning]
+> GUI editors require the wait flag, otherwise the terminal will not wait for you to finish typing before encrypting the file.*
 ```bash
 export EDITOR="code --wait"
 ```
@@ -78,7 +79,7 @@ source ~/.zshrc  # or ~/.bashrc
 
 ---
 
-## 🚀 Usage
+## Usage
 
 Journaller supports shorthand aliases for maximum speed.
 
@@ -111,7 +112,7 @@ jnlr s
 
 ---
 
-## 🔒 Security Architecture Notes
+## Security Architecture Notes
 * Journaller relies on a single **Master Secret Key (MSK)** generated upon setup.
 * The MSK is encrypted twice and stored as two separate files (`msk_sudo.enc` and `msk_auth.enc`), each protected by a different PIN via `scryptSync`.
 * This ensures that while symmetric AES-256-GCM encryption is used for the journal entries themselves, the UI logic can strictly enforce a "Write-Only" mode without exposing the read-capabilities to the Auth PIN holder.
