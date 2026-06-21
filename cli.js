@@ -191,8 +191,7 @@ program
     .command('read')
     .alias('r')
     .description('Decrypt and view past sessions')
-    .option('-r, --recursive', 'Recursively search for sessions in subdirectories')
-    .action(async (options) => {
+    .action(async () => {
         if (!fs.existsSync(path.join(VAULT_DIR, 'msk_sudo.enc'))) {
             return console.log(`${colors.red}ERR: VAULT NOT FOUND.${colors.reset}`);
         }
@@ -208,13 +207,7 @@ program
             return console.log(`${colors.red}ERR: ACCESS DENIED${colors.reset}`);
         }
 
-        let files = [];
-        if (options.recursive) {
-            files = getFilesRecursive(VAULT_DIR);
-        } else {
-            files = fs.readdirSync(VAULT_DIR)
-                .filter(f => f.match(/^\d{4}-\d{2}-\d{2}-\d+\.enc$/));
-        }
+        const files = getFilesRecursive(VAULT_DIR);
 
         // Sort all discovered files chronologically descending
         files.sort((a, b) => {
