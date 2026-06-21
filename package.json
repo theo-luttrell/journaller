@@ -1,0 +1,13 @@
+{
+  "name": "journaller",
+  "version": "2.0.2",
+  "description": "A zero-knowledge, terminal-based journal.",
+  "main": "cli.js",
+  "bin": {
+    "jnlr": "./cli.js",
+    "journaller": "./cli.js"
+  },
+  "dependencies": {
+    "commander": "^11.0.0"
+  }
+}
