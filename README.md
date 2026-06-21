@@ -91,17 +91,11 @@ jnlr w
 *(Or use: `jnlr write`)*
 
 ### 2. Read the Vault
-Requires your Sudo PIN. Displays a chronological list of your encrypted sessions.
+Requires your Sudo PIN. Displays a chronological list of your encrypted sessions. It automatically scans subfolders recursively if you have manually organized your `.enc` files.
 ```bash
 jnlr r
 ```
 *(Or use: `jnlr read`)*
-
-**Recursive Read:**
-If you manually organize your `.enc` files into subfolders within `~/.journaller/`, use the `-r` flag to recursively scan and list all entries.
-```bash
-jnlr r -r
-```
 
 ### 3. Setup / Reset
 If you ever need to completely wipe and reset your vault keys (Warning: This will render existing `.enc` files unreadable if you lose the old keys).
