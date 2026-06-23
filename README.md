@@ -22,7 +22,17 @@ It features a strict **Blind Drop-Box Architecture**:
 
 ## Installation
 
-**Prerequisites:** You must have [Node.js](https://nodejs.org/) installed.
+**Prerequisites:** You must have [Node.js](https://nodejs.org/) installed. If using automated install Node.js will be automatically installed using OS specific installer.
+
+### Method 1: Automatic Install
+
+Run this single command in your terminal. It will download the app, install the necessary dependencies, and provide an interactive menu to safely configure your text editor for you.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/theo-luttrell/journaller/main/install.bash | bash
+```
+
+### Method 2: Manual Install
 
 **1. Clone the repository:**
 ```bash
