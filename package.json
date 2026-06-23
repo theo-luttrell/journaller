@@ -1,6 +1,6 @@
 {
   "name": "journaller",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "A zero-knowledge, terminal-based journal.",
   "main": "cli.js",
   "bin": {
@@ -8,6 +8,7 @@
     "journaller": "./cli.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.10",
     "commander": "^11.0.0"
   }
 }

@@ -7,6 +7,7 @@ const os = require('os');
 const { spawnSync } = require('child_process');
 const readline = require('readline');
 const { Writable } = require('stream');
+const AdmZip = require('adm-zip');
 
 const program = new Command();
 const VAULT_DIR = path.join(os.homedir(), '.journaller');
@@ -102,7 +103,7 @@ const getFilesRecursive = (dir, fileList = [], baseDir = dir) => {
 program
     .name('jnlr')
     .description('Zero-knowledge encrypted terminal journal')
-    .version('2.0.2');
+    .version('2.1.0');
 
 // 1. SETUP COMMAND
 program
@@ -246,6 +247,123 @@ program
         } catch (e) {
             console.log(`${colors.red}ERR: DECRYPTION FAILED. FILE CORRUPT?${colors.reset}`);
         }
+    });
+
+// 4. EXPORT COMMAND
+program
+    .command('export [outputPath]')
+    .alias('e')
+    .description('Export vault entries to an ACIT encrypted zip archive')
+    .action(async (outputPath) => {
+        if (!fs.existsSync(path.join(VAULT_DIR, 'msk_sudo.enc'))) {
+            return console.log(`${colors.red}ERR: VAULT NOT FOUND.${colors.reset}`);
+        }
+
+        const outPath = outputPath || 'journaller_export.zip';
+
+        const pin = await askPin("SUDO PIN: ");
+        let msk;
+        try {
+            const sudoSalt = fs.readFileSync(path.join(VAULT_DIR, 'sudo_salt.bin'));
+            const encryptedMsk = fs.readFileSync(path.join(VAULT_DIR, 'msk_sudo.enc'));
+            const key = deriveKey(pin, sudoSalt);
+            msk = decryptData(encryptedMsk, key);
+        } catch (e) {
+            return console.log(`${colors.red}ERR: ACCESS DENIED${colors.reset}`);
+        }
+
+        const files = getFilesRecursive(VAULT_DIR);
+        if (files.length === 0) return console.log(`${colors.cyan}VAULT IS EMPTY. NOTHING TO EXPORT.${colors.reset}`);
+
+        console.log(`\n${colors.cyan}PREPARING TO EXPORT ${files.length} SESSION(S)...${colors.reset}`);
+        const acit = await askPin("SET ACIT (Auth Code in Transit) FOR EXPORT: ");
+        const acitConfirm = await askPin("CONFIRM ACIT: ");
+        if (acit !== acitConfirm) return console.log(`${colors.red}ERR: ACIT PINS DO NOT MATCH.${colors.reset}`);
+
+        const acitSalt = crypto.randomBytes(16);
+        const acitKey = deriveKey(acit, acitSalt);
+
+        const zip = new AdmZip();
+        zip.addFile('acit_salt.bin', acitSalt);
+
+        let successCount = 0;
+        files.forEach(f => {
+            try {
+                const payload = fs.readFileSync(path.join(VAULT_DIR, f));
+                const rawBuffer = decryptData(payload, msk);
+                const acitPayload = encryptData(rawBuffer, acitKey);
+                zip.addFile(f, acitPayload);
+                successCount++;
+            } catch (e) {
+                console.log(`${colors.red}ERR: FAILED TO PACK ${f}${colors.reset}`);
+            }
+        });
+
+        zip.writeZip(outPath);
+        console.log(`${colors.green}EXPORT COMPLETE: ${successCount} entries bundled into ${outPath}${colors.reset}`);
+    });
+
+// 5. IMPORT COMMAND
+program
+    .command('import <inputPath>')
+    .alias('i')
+    .description('Import an ACIT encrypted zip archive into the vault')
+    .action(async (inputPath) => {
+        if (!fs.existsSync(path.join(VAULT_DIR, 'msk_sudo.enc'))) {
+            return console.log(`${colors.red}ERR: TARGET VAULT NOT FOUND. RUN 'jnlr setup' FIRST.${colors.reset}`);
+        }
+
+        if (!fs.existsSync(inputPath)) {
+            return console.log(`${colors.red}ERR: ZIP FILE NOT FOUND AT ${inputPath}${colors.reset}`);
+        }
+
+        const pin = await askPin("SUDO PIN: ");
+        let msk;
+        try {
+            const sudoSalt = fs.readFileSync(path.join(VAULT_DIR, 'sudo_salt.bin'));
+            const encryptedMsk = fs.readFileSync(path.join(VAULT_DIR, 'msk_sudo.enc'));
+            const key = deriveKey(pin, sudoSalt);
+            msk = decryptData(encryptedMsk, key);
+        } catch (e) {
+            return console.log(`${colors.red}ERR: ACCESS DENIED${colors.reset}`);
+        }
+
+        const zip = new AdmZip(inputPath);
+        const saltEntry = zip.getEntry('acit_salt.bin');
+        
+        if (!saltEntry) {
+            return console.log(`${colors.red}ERR: INVALID EXPORT ARCHIVE (Missing Salt)${colors.reset}`);
+        }
+
+        const acit = await askPin("ENTER ACIT (Auth Code in Transit) TO DECRYPT ZIP: ");
+        const acitSalt = saltEntry.getData();
+        const acitKey = deriveKey(acit, acitSalt);
+
+        const zipEntries = zip.getEntries();
+        let successCount = 0;
+
+        zipEntries.forEach(zipEntry => {
+            if (!zipEntry.isDirectory && zipEntry.entryName.endsWith('.enc')) {
+                try {
+                    const acitPayload = zipEntry.getData();
+                    const rawBuffer = decryptData(acitPayload, acitKey);
+                    const finalPayload = encryptData(rawBuffer, msk);
+                    
+                    const targetPath = path.join(VAULT_DIR, zipEntry.entryName);
+                    const targetDir = path.dirname(targetPath);
+                    if (!fs.existsSync(targetDir)) {
+                        fs.mkdirSync(targetDir, { recursive: true });
+                    }
+                    
+                    fs.writeFileSync(targetPath, finalPayload);
+                    successCount++;
+                } catch (e) {
+                    console.log(`${colors.red}ERR: FAILED TO EXTRACT ${zipEntry.entryName}. INCORRECT ACIT?${colors.reset}`);
+                }
+            }
+        });
+
+        console.log(`${colors.green}IMPORT COMPLETE: ${successCount} entries added to vault.${colors.reset}`);
     });
 
 program.parse(process.argv);
